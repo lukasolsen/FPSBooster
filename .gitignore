@@ -1,5 +1,4 @@
 /build
 /dist
 *.spec
-installer.py
 *.pyc
