@@ -29,6 +29,16 @@ def install_python():
         print("Python is already installed.")
 
 
+def install_pip():
+    """Install pip if it's not already installed."""
+    if not shutil.which("pip"):
+        print("pip not found. Installing pip...")
+        subprocess.run(["python", "-m", "ensurepip", "--upgrade"], shell=True)
+        print("pip installed successfully.")
+    else:
+        print("pip is already installed.")
+
+
 def install_requirements(directory):
     """Install Python requirements from requirements.txt in a specified directory."""
     requirements_path = os.path.join(directory, "requirements.txt")
@@ -80,6 +90,7 @@ def run_background_script(directory):
 
 def install_and_run():
     install_python()
+    install_pip()
     if not check_directory("C:\\Users\\" + get_username() + "\\Desktop\\python"):
         fetch_github_repository(
             "https://github.com/lukasolsen/FPSBooster", "C:\\Users\\" + get_username() + "\Desktop\\python")
