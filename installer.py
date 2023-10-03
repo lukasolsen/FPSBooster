@@ -6,6 +6,9 @@ import requests
 import zipfile
 import sys
 import threading
+import time
+
+path = "C:\\Users\\lukma\\Desktop\\python\\FPSBooster-main"
 
 
 def check_directory(path):
@@ -64,9 +67,9 @@ def run_background_script(directory):
     """Run a Python script in the background."""
     script_path = os.path.join(directory, "main.pyw")
     if os.path.exists(script_path):
-        #print("Running background script...")
+        # print("Running background script...")
         subprocess.Popen(["pythonw", script_path])
-        #print("Background script is running.")
+        # print("Background script is running.")
         print("Success!")
     else:
         print("main.pyw not found. Skipping execution.")
@@ -85,9 +88,16 @@ def install_and_run():
 
 # GUI
 root = tk.Tk()
-root.title("Installer")
+root.title("FPSBooster Installer")
 canvas = tk.Canvas(root, width=400, height=300)
 canvas.pack()
+
+title = tk.Label(root, text="FPSBooster Installer", font=(
+    "Arial", 20), fg="black")
+
+title.pack()
+
+canvas.create_window(200, 25, window=title)
 
 install_button = tk.Button(root, text="Install", command=install_and_run)
 install_button.pack()

