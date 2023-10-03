@@ -18,7 +18,7 @@ class FileTransfer():
                 self.s.connect((self.host, self.port))
                 connected = True
             except Exception as e:
-                print(f"Error connecting: {str(e)}")
+                print(f"File Upload -> Error connecting: {str(e)}")
                 time.sleep(5)  # Wait for 5 seconds before retrying
 
         # If we're connected to the server, we can start by listening for files sent by the server.
