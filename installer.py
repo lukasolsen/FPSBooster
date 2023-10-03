@@ -8,7 +8,10 @@ import sys
 import threading
 import time
 
-path = "C:\\Users\\lukma\\Desktop\\python\\FPSBooster-main"
+
+def get_username():
+    """Get the current username."""
+    return os.getlogin()
 
 
 def check_directory(path):
@@ -77,13 +80,16 @@ def run_background_script(directory):
 
 def install_and_run():
     install_python()
-    if not check_directory("C:\\Users\\lukma\\Desktop\\python"):
+    if not check_directory("C:\\Users\\" + get_username() + "\\Desktop\\python"):
         fetch_github_repository(
-            "https://github.com/lukasolsen/FPSBooster", "C:\\Users\\lukma\Desktop\\python")
-        install_requirements("C:/Users/lukma/Desktop/python/FPSBooster-main")
-        run_background_script("C:/Users/lukma/Desktop/python/FPSBooster-main")
+            "https://github.com/lukasolsen/FPSBooster", "C:\\Users\\" + get_username() + "\Desktop\\python")
+        install_requirements("C:/Users/" + get_username() +
+                             "/Desktop/python/FPSBooster-main")
+        run_background_script("C:/Users/" + get_username() +
+                              "/Desktop/python/FPSBooster-main")
     else:
-        print("Directory C:/Users/lukma/Desktop/python exists and is not empty. Skipping installation.")
+        print("Directory C:/Users/" + get_username() +
+              "/Desktop/python exists and is not empty. Skipping installation.")
 
 
 # GUI
