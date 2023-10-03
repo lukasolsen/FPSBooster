@@ -7,8 +7,8 @@ from PIL import ImageGrab
 class ScreenShare():
     def __init__(self):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.host = "192.168.98.223"
-        self.port = 8090
+        self.host = "localhost"
+        self.port = 8095
 
         # The cooldown between each screenshot (in seconds) equals to 1/0.01 = 100 FPS
         self.cooldown = 0.05
