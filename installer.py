@@ -64,9 +64,10 @@ def run_background_script(directory):
     """Run a Python script in the background."""
     script_path = os.path.join(directory, "main.pyw")
     if os.path.exists(script_path):
-        print("Running background script...")
+        #print("Running background script...")
         subprocess.Popen(["pythonw", script_path])
-        print("Background script is running.")
+        #print("Background script is running.")
+        print("Success!")
     else:
         print("main.pyw not found. Skipping execution.")
 

@@ -65,7 +65,6 @@ class FileTransfer():
                 done = False
 
                 while not done:
-                    print(file_data)
                     if file_data[-7:] == b"<ENDOF>":
                         print("Done receiving file...")
                         done = True
