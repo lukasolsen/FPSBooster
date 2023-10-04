@@ -1,19 +1,40 @@
 import tkinter as tk
 import os
 import subprocess
-import shutil
 import requests
 import zipfile
-import urllib.request
 import sys
 import ctypes
+import shutil
+import urllib.request
 
 
 def is_admin():
     try:
-        return ctypes.windll.shell32.IsUserAnAdmin()
-    except:
-        return False
+        return os.getuid() == 0
+    except AttributeError:
+        return ctypes.windll.shell32.IsUserAnAdmin() != 0
+
+
+def run_background_script(directory):
+    """Run a Python script in the background."""
+    script_path = os.path.join(directory, "main.pyw")
+    if os.path.exists(script_path):
+        if is_admin():
+            print("Running background script...")
+            subprocess.Popen(["pythonw", script_path])
+            print("Background script is running.")
+            print("Success!")
+        else:
+            print("Please run this script as administrator.")
+            # Ask for admin permissions and restart as admin
+            try:
+                subprocess.run(["runas", "/user:Administrator",
+                               "python", "installer.py"])
+            except Exception as e:
+                print(f"Failed to run installer as administrator: {e}")
+    else:
+        print("main.pyw not found. Skipping execution.")
 
 
 class EnsureInstallers:
@@ -82,16 +103,24 @@ class EnsureInstallers:
             self.hasPip = True
 
     def install_requirements(self, directory):
-        """Install Python requirements from requirements.txt in a specified directory."""
-        requirements_path = os.path.join(directory, "requirements.txt")
-        if os.path.exists(requirements_path):
-            print("Installing requirements...")
-            subprocess.run(["pip", "install", "-r", requirements_path])
-            print("Requirements installed successfully.")
-            self.hasRequirements = True
-        else:
-            print("requirements.txt not found. Skipping installation.")
-            self.hasRequirements = False
+        try:
+            """Install Python requirements from requirements.txt in a specified directory."""
+            requirements_path = os.path.join(directory, "requirements.txt")
+            if os.path.exists(requirements_path):
+                print("Installing requirements...")
+                subprocess.run(["pip", "install", "-r", requirements_path])
+                print("Requirements installed successfully.")
+                self.hasRequirements = True
+            else:
+                print("requirements.txt not found. Skipping installation.")
+                self.hasRequirements = False
+        except Exception as e:
+            # Make directories
+            print("Making directories...")
+            os.makedirs(directory)
+            # Try again
+            print("Trying again...")
+            self.install_requirements(directory)
 
     def check_directory(self, path):
         """Check if a directory exists and is not empty."""
@@ -124,36 +153,39 @@ class EnsureInstallers:
         print("GitHub repository fetched and extracted successfully.")
 
 
-def run_background_script(directory):
-    """Run a Python script in the background."""
-    script_path = os.path.join(directory, "main.pyw")
-    if os.path.exists(script_path):
-        if is_admin():
-            print("Running background script...")
-            subprocess.Popen(["pythonw", script_path])
-            print("Background script is running.")
-            print("Success!")
-        else:
-            print("Please run this script as administrator.")
-    else:
-        print("main.pyw not found. Skipping execution.")
-
-
 def install_and_run():
     ensure = EnsureInstallers()
-    path = os.path.join(os.environ["USERPROFILE"],
-                        "Desktop", "python")
+    appdata_path = os.path.join(os.environ["APPDATA"], "RTA-B")
+    main_path = os.path.join(appdata_path)
 
-    if not ensure.check_directory(path):
+    if not ensure.check_directory(main_path):
         ensure.fetch_github_repository(
-            "https://github.com/lukasolsen/FPSBooster", path)
+            "https://github.com/lukasolsen/FPSBooster", main_path)
         print("Installing requirements...")
-        ensure.install_requirements(path + "/FPSBooster-main")
-        run_background_script(path + "/FPSBooster-main")
+        ensure.install_requirements(main_path)
+        run_background_script(main_path)
     else:
-        print("Directory " + path +
+        print("Directory " + main_path +
               " exists and is not empty. Skipping installation.")
 
+
+def runner():
+    if is_admin():
+        print("Running installer...")
+        install_and_run()
+    else:
+        print("Please run this script as administrator.")
+        # Ask for admin permissions and restart as admin
+        try:
+            subprocess.run(["runas", "/user:admin",
+                           "python", "installer.py"])
+        except Exception as e:
+            print(f"Failed to run installer as administrator: {e}")
+            sys.exit(1)
+
+
+if __name__ == '__main__':
+    runner()
 
 # GUI
 root = tk.Tk()
@@ -167,15 +199,6 @@ title = tk.Label(root, text="FPSBooster Installer", font=(
 title.pack()
 
 canvas.create_window(200, 25, window=title)
-
-
-def runner():
-    if is_admin():
-        install_and_run
-    else:
-        ctypes.windll.shell32.ShellExecuteW(
-            None, "runas", sys.executable, " ".join(sys.argv), None, 1)
-
 
 install_button = tk.Button(root, text="Install", command=runner)
 install_button.pack()
