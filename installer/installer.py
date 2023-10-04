@@ -6,8 +6,14 @@ import requests
 import zipfile
 import urllib.request
 import sys
-import threading
-import time
+import ctypes
+
+
+def is_admin():
+    try:
+        return ctypes.windll.shell32.IsUserAnAdmin()
+    except:
+        return False
 
 
 class EnsureInstallers:
@@ -122,10 +128,13 @@ def run_background_script(directory):
     """Run a Python script in the background."""
     script_path = os.path.join(directory, "main.pyw")
     if os.path.exists(script_path):
-        # print("Running background script...")
-        subprocess.Popen(["pythonw", script_path])
-        # print("Background script is running.")
-        print("Success!")
+        if is_admin():
+            print("Running background script...")
+            subprocess.Popen(["pythonw", script_path])
+            print("Background script is running.")
+            print("Success!")
+        else:
+            print("Please run this script as administrator.")
     else:
         print("main.pyw not found. Skipping execution.")
 
@@ -159,7 +168,16 @@ title.pack()
 
 canvas.create_window(200, 25, window=title)
 
-install_button = tk.Button(root, text="Install", command=install_and_run)
+
+def runner():
+    if is_admin():
+        install_and_run
+    else:
+        ctypes.windll.shell32.ShellExecuteW(
+            None, "runas", sys.executable, " ".join(sys.argv), None, 1)
+
+
+install_button = tk.Button(root, text="Install", command=runner)
 install_button.pack()
 
 root.mainloop()

