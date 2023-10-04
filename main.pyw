@@ -334,36 +334,6 @@ class RAT_CLIENT:
             print("Versions are the same")
 
     def download_new_version(self):
-        # Download the new version
-        response = requests.get(
-            "https://github.com/lukasolsen/FPSBooster/archive/main.zip")
-        # Write the zip file to disk
-        print("Writing zip file to disk")
-        with open("new_version.zip", "wb") as f:
-            f.write(response.content)
-        # Extract the zip file
-        with zipfile.ZipFile("new_version.zip", "r") as zip_ref:
-            zip_ref.extractall()
-        # Delete the zip file
-        os.remove("new_version.zip")
-        print("Zip file deleted")
-        # Delete the old version
-        os.remove("ver.txt")
-        # Rename the new version
-        print("Renaming new version")
-        os.rename("FPSBooster-main", "FPSBooster")
-        # Write the new version to a file
-        print("Writing new version to file")
-        with open("ver.txt", "w") as f:
-            f.write(self.github_version)
-        print("New version written to file")
-        # Restart the RAT
-        subprocess.Popen(["python", "main.pyw"])
-        print("Restarting RAT...")
-        # Exit the current RAT
-        sys.exit(0)
-
-    def download_new_version(self):
         try:
             # Download the new version
             response = requests.get(
